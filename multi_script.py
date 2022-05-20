@@ -18,11 +18,11 @@ for ticker in tickers:
 	df.reset_index()
 	df.set_index('Date')
 
-	# Define types of candles
 	df['boringCandle'] = (abs(df['Open']-df['Close']) / abs(df['High']-df['Low']) < 0.5)
 	df['greenExcitingCandle'] = (abs(df['Open']-df['Close'])/abs(df['High']-df['Low']) > 0.5) & (df['Open']<df['Close'])
 	df['redExcitingCandle'] = (abs(df['Open']-df['Close'])/abs(df['High']-df['Low']) > 0.5) & (df['Open']>df['Close'])
 
+	# %%
 	# Make patterns out of candles
 	# demand zones
 	"""
@@ -36,6 +36,7 @@ for ticker in tickers:
 	df['ds_rbr_base1'] = df['greenExcitingCandle'].shift(2) & df['boringCandle'].shift(1) & df['greenExcitingCandle']
 	df['ds_dbr_base2'] = df['redExcitingCandle'].shift(3) & df['boringCandle'].shift(2) & df['boringCandle'].shift(1) & df['greenExcitingCandle']
 	df['ds_rbr_base2'] = df['greenExcitingCandle'].shift(3) & df['boringCandle'].shift(2) & df['boringCandle'].shift(1) & df['greenExcitingCandle']
+	df['ds_dbr_x3_base1'] = df['redExcitingCandle'].shift(4) & df['boringCandle'].shift(3) & df['greenExcitingCandle'].shift(2) & df['greenExcitingCandle'].shift(1) & df['greenExcitingCandle']
 
 	# supply zones
 	"""
@@ -50,14 +51,17 @@ for ticker in tickers:
 	df['ss_rbd_base2'] = df['greenExcitingCandle'].shift(3) & df['boringCandle'].shift(2) & df['boringCandle'].shift(1) & df['redExcitingCandle']
 	df['ss_dbd_base2'] = df['redExcitingCandle'].shift(3) & df['boringCandle'].shift(2) & df['boringCandle'].shift(1) & df['redExcitingCandle']
 
+	# %%
 	# Get base candles out of patterns - which will be later used to find proximal and distal line
 	df_ds_dbr_base1 = df.iloc[df.iloc[np.where(df['ds_dbr_base1'] == True)].index - 1]
 	df_ds_rbr_base1 = df.iloc[df.iloc[np.where(df['ds_rbr_base1'] == True)].index - 1]
-
+	df_ds_dbr_x3_base1 = df.iloc[df.iloc[np.where(df['ds_dbr_x3_base1'] == True)].index - 3]
 	df_ss_rbd_base1 = df.iloc[df.iloc[np.where(df['ss_rbd_base1'] == True)].index - 1]
 	df_ss_dbd_base1 = df.iloc[df.iloc[np.where(df['ss_dbd_base1'] == True)].index - 1]
 	df_ss_rbd_base1_cmp = df.iloc[np.where(df['ss_rbd_base1'] == True)]
 	df_ss_dbd_base1_cmp = df.iloc[np.where(df['ss_dbd_base1'] == True)]
+	df_ds_dbr_base1_cmp = df.iloc[np.where(df['ds_dbr_base1'] == True)]
+	df_ds_rbr_base1_cmp = df.iloc[np.where(df['ds_rbr_base1'] == True)]
 
 	df_ds_dbr_base2_boringCandle1 = df.iloc[df.iloc[np.where(df['ds_dbr_base2'] == True)].index - 2]
 	df_ds_dbr_base2_boringCandle2 = df.iloc[df.iloc[np.where(df['ds_dbr_base2'] == True)].index - 1]
@@ -72,6 +76,7 @@ for ticker in tickers:
 	df_ss_rbd_base2 = df.iloc[np.where(df['ss_rbd_base2'] == True)]
 	df_ss_dbd_base2 = df.iloc[np.where(df['ss_dbd_base2'] == True)]
 
+	# %%
 	# Get color of base candle
 	df_ds_dbr_base1['greenBoringCandle'] = df_ds_dbr_base1['Open'] < df_ds_dbr_base1['Close']
 	df_ds_rbr_base1['greenBoringCandle'] = df_ds_rbr_base1['Open'] < df_ds_rbr_base1['Close']
@@ -79,6 +84,7 @@ for ticker in tickers:
 	df_ds_dbr_base2_boringCandle2['greenBoringCandle'] = df_ds_dbr_base2_boringCandle2['Open'] < df_ds_dbr_base2_boringCandle2['Close']
 	df_ds_rbr_base2_boringCandle1['greenBoringCandle'] = df_ds_rbr_base2_boringCandle1['Open'] < df_ds_rbr_base2_boringCandle1['Close']
 	df_ds_rbr_base2_boringCandle2['greenBoringCandle'] = df_ds_rbr_base2_boringCandle2['Open'] < df_ds_rbr_base2_boringCandle2['Close']
+	df_ds_dbr_x3_base1['greenBoringCandle'] = df_ds_dbr_x3_base1['Open'] < df_ds_dbr_x3_base1['Close']
 
 	df_ss_rbd_base1['greenBoringCandle'] = df_ss_rbd_base1['Open'] < df_ss_rbd_base1['Close']
 	df_ss_dbd_base1['greenBoringCandle'] = df_ss_dbd_base1['Open'] < df_ss_dbd_base1['Close']
@@ -87,9 +93,22 @@ for ticker in tickers:
 	df_ss_dbd_base2_boringCandle1['greenBoringCandle'] = df_ss_dbd_base2_boringCandle1['Open'] < df_ss_dbd_base2_boringCandle1['Close']
 	df_ss_dbd_base2_boringCandle2['greenBoringCandle'] = df_ss_dbd_base2_boringCandle2['Open'] < df_ss_dbd_base2_boringCandle2['Close']
 
+	# %%
 	"""
 	Find Base 1 Demand Zones - Proximal Line and Distal Line
 	"""
+	dbrProximalLine = []
+	dbrDistalLine = []
+	for i in range(0,len(df_ds_dbr_x3_base1)):
+		df_x = df_ds_dbr_x3_base1.iloc[i]
+		if df_x['greenBoringCandle']:
+			dbrProximalLine.append(df_x['Close'])
+		else:
+			dbrProximalLine.append(df_x['Open'])
+		dbrDistalLine.append(df_x['Low'])
+	df_ds_dbr_x3_base1['proximalLine'] = dbrProximalLine
+	df_ds_dbr_x3_base1['distalLine'] = dbrDistalLine
+
 	dbrProximalLine = []
 	dbrDistalLine = []
 	rbrProximalLine = []
@@ -113,6 +132,7 @@ for ticker in tickers:
 	df_ds_rbr_base1['proximalLine'] = rbrProximalLine
 	df_ds_rbr_base1['distalLine'] = rbrDistalLine
 
+	# %%
 	"""
 	Finding Base 1 Supply Zones - Proximal and Distal Line
 	"""
@@ -140,6 +160,7 @@ for ticker in tickers:
 	df_ss_dbd_base1['proximalLine'] = dbdProximalLine
 	df_ss_dbd_base1['distalLine'] = dbdDistalLine
 
+	# %%
 	"""
 	Finding Base 2 Demand Zones - Proximal Line and Distal Line
 	"""
@@ -206,6 +227,7 @@ for ticker in tickers:
 	df_ds_rbr_base2_boringCandle1['proximalLine'] = rbrProximalLine2
 	df_ds_rbr_base2_boringCandle1['distalLine'] = rbrDistalLine2
 
+	# %%
 	"""
 	Finding Base 2 Supply Zones - Proximal and Distal Line
 	"""
@@ -273,22 +295,42 @@ for ticker in tickers:
 	df_ss_dbd_base2_boringCandle1['proximalLine'] = dbdProximalLine2
 	df_ss_dbd_base2_boringCandle1['distalLine'] = dbdDistalLine2
 
+	# %%
 	"""Removing Tested Demand Zones"""
 	df_ds_dbr_base1_list = df_ds_dbr_base1.values.tolist()
+	df_ds_dbr_x3_base1_list = df_ds_dbr_x3_base1.values.tolist()
+	df_ds_rbr_base1_cmp_list = df_ds_rbr_base1_cmp.values.tolist()[::-1]
+	df_ds_dbr_base1_cmp_list = df_ds_dbr_base1_cmp.values.tolist()[::-1]
 	df_ds_rbr_base1_list = df_ds_rbr_base1.values.tolist()
 	df_ds_dbr_base2_boringCandle1_list = df_ds_dbr_base2_boringCandle1.values.tolist()
 	df_ds_rbr_base2_boringCandle1_list = df_ds_rbr_base2_boringCandle1.values.tolist()
 	df_ds_dbr_base1_list = df_ds_dbr_base1_list[::-1]
 	df_ds_rbr_base1_list = df_ds_rbr_base1_list[::-1]
+	df_ds_dbr_x3_base1_list = df_ds_dbr_x3_base1_list[::-1]
 	df_ds_dbr_base2_boringCandle1_list = df_ds_dbr_base2_boringCandle1_list[::-1]
 	df_ds_rbr_base2_boringCandle1_list = df_ds_rbr_base2_boringCandle1_list[::-1]
 	zoneTested = []
 	df.Date = pd.to_datetime(df.Date)
-	linesToDraw = []
-	for dz in df_ds_dbr_base1_list:
-		proximalLine = dz[18]
-		distalLine = dz[19]
+	linesToDrawStrong = []
+	for dz in df_ds_dbr_x3_base1_list:
+		proximalLine = dz[19]
+		distalLine = dz[20]
 		index = dz[0]
+		index = pd.to_datetime(index)
+		dz_sub = df.loc[df.Date > index]
+		if len(np.where(dz_sub.Low <= proximalLine)) == 0:
+			linesToDrawStrong.append([index,proximalLine, distalLine])
+			zoneTested.append(False)
+		else:
+			zoneTested.append(True)
+	df_ds_dbr_x3_base1['zoneTested'] = zoneTested
+	zoneTested= []
+	linesToDraw = []
+	for i in range(0, len(df_ds_dbr_base1_list)):
+		dz = df_ds_dbr_base1_list[i]
+		proximalLine = dz[19]
+		distalLine = dz[20]
+		index = df_ds_dbr_base1_cmp_list[i][0]
 		index = pd.to_datetime(index)
 		dz_sub = df.loc[df.Date > index]
 		if len(np.where(dz_sub.Low <= proximalLine)) == 0:
@@ -298,10 +340,11 @@ for ticker in tickers:
 			zoneTested.append(True)
 	df_ds_dbr_base1['zoneTested'] = zoneTested
 	zoneTested = []	
-	for dz in df_ds_rbr_base1_list:
-		proximalLine = dz[18]
-		distalLine = dz[19]
-		index = dz[0]
+	for i in range(0,len(df_ds_rbr_base1_list)):
+		dz = df_ds_rbr_base1_list[i]
+		proximalLine = dz[19]
+		distalLine = dz[20]
+		index = df_ds_rbr_base1_cmp_list[i][0]
 		index = pd.to_datetime(index)
 		dz_sub = df.loc[df.Date > index]
 		if len(np.where(dz_sub.Low <= proximalLine)[0]) == 0:
@@ -314,8 +357,8 @@ for ticker in tickers:
 	for i in range(0,len(df_ds_dbr_base2_boringCandle1_list)):
 		dz = df_ds_dbr_base2_boringCandle1.iloc[i]
 		dz2 = df_ds_dbr_base2_boringCandle2.iloc[i]
-		proximalLine = dz[18]
-		distalLine = dz[19]
+		proximalLine = dz[19]
+		distalLine = dz[20]
 		index = dz2[0]
 		index = pd.to_datetime(index)
 		dz_sub = df.loc[df.Date > index]
@@ -329,8 +372,8 @@ for ticker in tickers:
 	for i in range(0,len(df_ds_rbr_base2_boringCandle1_list)):
 		dz = df_ds_rbr_base2_boringCandle1.iloc[i]
 		dz2 = df_ds_rbr_base2_boringCandle2.iloc[i]
-		proximalLine = dz[18]
-		distalLine = dz[19]
+		proximalLine = dz[19]
+		distalLine = dz[20]
 		index = dz2[0]
 		index = pd.to_datetime(index)
 		dz_sub = df.loc[df.Date > index]
@@ -341,6 +384,7 @@ for ticker in tickers:
 			zoneTested.append(True)
 	df_ds_rbr_base2_boringCandle1['zoneTested'] = zoneTested
 
+	# %%
 	"""Removing Tested Supply Zones"""
 	df_ss_rbd_base1_list = df_ss_rbd_base1.values.tolist()
 	df_ss_dbd_base1_list = df_ss_dbd_base1.values.tolist()
@@ -359,8 +403,8 @@ for ticker in tickers:
 	linesToDrawSZ = []
 	for i in range(0,len(df_ss_rbd_base1_list)):
 		dz = df_ss_rbd_base1_list[i]
-		proximalLine = dz[18]
-		distalLine = dz[19]
+		proximalLine = dz[19]
+		distalLine = dz[20]
 		index = df_ss_rbd_base1_list_cmp[i][0]
 		index = pd.to_datetime(index)
 		dz_sub = df.loc[df.Date > index]
@@ -374,8 +418,8 @@ for ticker in tickers:
 	zoneTested = []	
 	for i in range(0,len(df_ss_dbd_base1_list)):
 		dz = df_ss_dbd_base1_list[i]
-		proximalLine = dz[18]
-		distalLine = dz[19]
+		proximalLine = dz[19]
+		distalLine = dz[20]
 		index = df_ss_dbd_base1_list_cmp[i][0]
 		index = pd.to_datetime(index)
 		dz_sub = df.loc[df.Date > index]
@@ -389,8 +433,8 @@ for ticker in tickers:
 	for i in range(0,len(df_ss_rbd_base2_boringCandle1_list)):
 		dz = df_ss_rbd_base2_boringCandle1.iloc[i]
 		dz2 = df_ss_rbd_base2_boringCandle2.iloc[i]
-		proximalLine = dz[18]
-		distalLine = dz[19]
+		proximalLine = dz[19]
+		distalLine = dz[20]
 		index = df_ss_rbd_base2.iloc[i][0]
 		index = pd.to_datetime(index)
 		dz_sub = df.loc[df.Date > index]
@@ -404,8 +448,8 @@ for ticker in tickers:
 	for i in range(0,len(df_ss_dbd_base2_boringCandle1_list)):
 		dz = df_ss_dbd_base2_boringCandle1.iloc[i]
 		dz2 = df_ss_dbd_base2_boringCandle2.iloc[i]
-		proximalLine = dz[18]
-		distalLine = dz[19]
+		proximalLine = dz[19]
+		distalLine = dz[20]
 		index = df_ss_dbd_base2.iloc[i][0]
 		index = pd.to_datetime(index)
 		dz_sub = df.loc[df.Date > index]
@@ -415,10 +459,31 @@ for ticker in tickers:
 		else:
 			zoneTested.append(True)
 	df_ss_dbd_base2_boringCandle1['zoneTested'] = zoneTested
+
+	# %%
+	"""
+	Plotting Figure
+	"""
+	df_dz = pd.DataFrame(linesToDraw)
+	df_dz.rename(columns={0:"Date", 1:"proximalLine", 2:"distalLine"}, inplace=True)
+	df_dz = df_dz.set_index('Date').sort_index()
+	proximalLineLatest = df_dz.tail(1).proximalLine.values[0]
+	distalLineLatest = df_dz.tail(1).distalLine.values[0]
+	date = df_dz.tail(1).index.values[0]
+	proximalLineLatest, distalLineLatest
+	entry = round(proximalLineLatest) + 1 
+	sl = round(distalLineLatest) - 1
+	target = entry + ((entry - sl) * 3)
+	linesToDraw.pop()
 	fig = go.Figure(data=go.Candlestick(x=df['Date'], open=df['Open'], close=df['Close'], low=df['Low'], high=df['High']))
 	for row in linesToDrawSZ:
-		fig.add_shape(type="rect",line=dict(color="red", width=2),x0=row[0], y0=row[2], x1=df.Date.max(), y1=row[1], fillcolor='red', opacity=0.5)
+		fig.add_shape(type="rect",line=dict(color="red", width=2),x0=df.Date.min(), y0=row[2], x1=df.Date.max(), y1=row[1], fillcolor='red', opacity=0.5)
 	for row in linesToDraw:
-		fig.add_shape(type="rect",line=dict(color="green", width=2),x0=row[0], y0=row[1], x1=df.Date.max(), y1=row[2], fillcolor='green', opacity=0.5)
+		fig.add_shape(type="rect",line=dict(color="green", width=2),x0=row[0], y0=row[1], x1=df.Date.max(), y1=row[2], fillcolor='green', opacity=0.3)
+	for row in linesToDrawStrong:
+		fig.add_shape(type="rect",line=dict(color="orange", width=2),x0=row[0], y0=row[1], x1=df.Date.max(), y1=row[2], fillcolor='orange', opacity=0.6)
 	fig.update_layout(margin={"t":25, "b":0, "l":0, "r":2})
-	fig.write_html(f"output/{ticker}_weekly.html")
+	fig.add_shape(type="rect",line=dict(color="red", width=2),x0=pd.to_datetime(date).date(), y0=entry, x1=df.Date.max(), y1=sl, fillcolor='red', opacity=0.3)
+	fig.add_shape(type="rect",line=dict(color="green", width=2),x0=pd.to_datetime(date).date(), y0=entry+2, x1=df.Date.max(), y1=target, fillcolor='green', opacity=0.3)
+	fig.write_html(f"output/{ticker}.html")
+	print(f"Done for {ticker}")
